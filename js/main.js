@@ -3,7 +3,16 @@ const STORAGE_KEY = 'BOOKSHELF_APPS'
 const RENDER_EVENT = 'render-book'
 const SAVED_EVENT = 'saved-book'
 
+const inputBook = document.getElementById('inputBook')
 const inputBookIsComplete = document.getElementById('inputBookIsComplete')
+const bookSubmit = document.getElementById('bookSubmit')
+const inputTitle = document.getElementById('inputTitle')
+
+const updatedBookSubmitTitle = () => {
+    const spanEl = bookSubmit.childNodes[1]
+    if(inputBookIsComplete.checked) spanEl.innerText = 'Selesai dibaca'
+    else spanEl.innerText = 'Belum selesai dibaca'
+}
 
 const isStorageExists = () =>{
     if(typeof(Storage) === undefined){
@@ -28,23 +37,36 @@ const loadDataFromStorage = () => {
 
 const saveData = (option, book) => {
     if(isStorageExists()){
-        const data = {add: option.add, undo: option.undo, complete: option.complete, remove: option.remove, book: book}
+        const data = {add: option.add, update: option.update, undo: option.undo, complete: option.complete, remove: option.remove, book: book}
         const parsed = JSON.stringify(books)
         localStorage.setItem(STORAGE_KEY, parsed)
         document.dispatchEvent(new CustomEvent(SAVED_EVENT, { detail: data }))
     }
 }
 
+const resetForm = () => {
+    const titleEl = document.getElementById('inputBookTitle')
+    const authorEl = document.getElementById('inputBookAuthor')
+    const yearEl = document.getElementById('inputBookYear')
+    const isCompleteEl = inputBookIsComplete
+
+    titleEl.value = ''
+    authorEl.value = ''
+    yearEl.value = ''
+    isCompleteEl.checked = false
+
+    updatedBookSubmitTitle()
+    const spanEl = bookSubmit.childNodes[1]
+    bookSubmit.innerHTML = `Masukkan Buku ke rak <span>${spanEl.innerText}</span>`
+    inputTitle.innerText = `Masukkan Buku Baru`
+    inputBook.dataset.type = 'add'
+    inputBook.removeAttribute('data-book-id')
+}
+
 const generateId = () => +new Date()
 
 const generateBookObject = (id, title, author, year, isComplete) => {
     return { id, title, author, year, isComplete }
-}
-
-const updatedBookSubmitTitle = () => {
-    const spanEl = bookSubmit.childNodes[1]
-    if(inputBookIsComplete.checked) spanEl.innerText = 'Selesai dibaca'
-    else spanEl.innerText = 'Belum selesai dibaca'
 }
 
 const findBook = (id) => books.find((book) => book.id == id)
@@ -65,14 +87,60 @@ const addBookToComplete = (id) => {
     saveData({complete: true}, book)
 }
 
-const undoBookCompleted = (id) => {
-    const book = findBook(id)
+const addBook = () => {
+    const id = generateId()
+    const title = document.getElementById('inputBookTitle').value
+    const author = document.getElementById('inputBookAuthor').value
+    const year = document.getElementById('inputBookYear').value
+    const isComplete = inputBookIsComplete.checked
 
-    if(book === undefined) return
-
-    book.isComplete = false
+    const bookObject = generateBookObject(id, title, author, year, isComplete)
+    books.push(bookObject)
+    
     document.dispatchEvent(new Event(RENDER_EVENT))
-    saveData({undo: true}, book)
+    resetForm()
+    saveData({add: true}, bookObject)
+}
+
+const editBook = (book) =>{
+    const titleEl = document.getElementById('inputBookTitle')
+    const authorEl = document.getElementById('inputBookAuthor')
+    const yearEl = document.getElementById('inputBookYear')
+    const isCompleteEl = inputBookIsComplete
+
+    document.body.scrollTop = 0
+    document.documentElement.scrollTop = 0
+    inputBook.dataset.type = 'update'
+    inputBook.dataset.bookId = book.id
+
+    titleEl.value = book.title
+    authorEl.value = book.author
+    yearEl.value = book.year
+    isCompleteEl.checked = book.isComplete
+
+    updatedBookSubmitTitle()
+    const spanEl = bookSubmit.childNodes[1]
+    bookSubmit.innerHTML = `Edit Buku ke rak <span>${spanEl.innerText}</span>`
+    inputTitle.innerText = `Edit Buku ${book.title}`
+}
+
+const updateBook = (id) => {
+    let title = document.getElementById('inputBookTitle').value
+    let author = document.getElementById('inputBookAuthor').value
+    let year = document.getElementById('inputBookYear').value
+    let isComplete = inputBookIsComplete.checked
+
+    const book = findBook(id)
+    const bookTemp = book
+    book.title = title
+    book.author = author
+    book.year = year
+    book.isComplete = isComplete
+
+    resetForm()
+    
+    document.dispatchEvent(new Event(RENDER_EVENT))
+    saveData({update: true}, bookTemp)
 }
 
 const removeBook = (id) => {
@@ -86,18 +154,14 @@ const removeBook = (id) => {
     saveData({remove: true}, bookTemp)
 }
 
-const addBook = () => {
-    const id = generateId()
-    const title = document.getElementById('inputBookTitle').value
-    const author = document.getElementById('inputBookAuthor').value
-    const year = document.getElementById('inputBookYear').value
-    const isComplete = inputBookIsComplete.checked
+const undoBookCompleted = (id) => {
+    const book = findBook(id)
 
-    const bookObject = generateBookObject(id, title, author, year, isComplete)
-    books.push(bookObject)
-    
+    if(book === undefined) return
+
+    book.isComplete = false
     document.dispatchEvent(new Event(RENDER_EVENT))
-    saveData({add: true}, bookObject)
+    saveData({undo: true}, book)
 }
 
 const searchBookByTitle = (title) => {
@@ -128,24 +192,32 @@ const makeBook = (bookObject) => {
     actionButtonUpdate.classList.add('green')
     if(bookObject.isComplete){
         actionButtonUpdate.innerHTML = 'Belum selesai dibaca'
-        actionButtonUpdate.addEventListener('click', function(e){
+        actionButtonUpdate.addEventListener('click', function(){
             undoBookCompleted(bookObject.id)
         })
     }else{
         actionButtonUpdate.innerHTML = 'Selesai dibaca'
-        actionButtonUpdate.addEventListener('click', function(e){
+        actionButtonUpdate.addEventListener('click', function(){
             addBookToComplete(bookObject.id)
         })
     }
     const actionButtonRemove = document.createElement('button')
     actionButtonRemove.classList.add('red')
     actionButtonRemove.innerText = 'Hapus buku'
-    actionButtonRemove.addEventListener('click', function(e){
+    const actionButtonEdit = document.createElement('button')
+    actionButtonEdit.classList.add('orange')
+    actionButtonEdit.innerText = 'Edit buku'
+
+    actionButtonRemove.addEventListener('click', function(){
         const isRemove = confirm(`Anda yakin akan menghapus buku ${bookObject.title} tahun ${bookObject.year} karya ${bookObject.author}?`)
         if(isRemove) removeBook(bookObject.id)
     })
-    bookAction.append(actionButtonUpdate,actionButtonRemove)
 
+    actionButtonEdit.addEventListener('click', function(){
+        editBook(bookObject)
+    })
+
+    bookAction.append(actionButtonUpdate,actionButtonEdit,actionButtonRemove)
     bookContainer.append(bookTitle, bookAuthor, bookYear, bookAction)
 
     return bookContainer
@@ -165,10 +237,12 @@ document.addEventListener(SAVED_EVENT, function(e){
         alert(`Berhasil menyelesaikan buku ${e.detail.book.title} tahun ${e.detail.book.year} karya ${e.detail.book.author}`)
     }else if(e.detail.remove){
         alert(`Berhasil menghapus buku ${e.detail.book.title} tahun ${e.detail.book.year} karya ${e.detail.book.author}`)
+    }else if(e.detail.update){
+        alert(`Berhasil mengedit buku ${e.detail.book.title} tahun ${e.detail.book.year} karya ${e.detail.book.author}`)
     }
 })
 
-document.addEventListener(RENDER_EVENT, function(e){
+document.addEventListener(RENDER_EVENT, function(){
     const incompleteBookshelfList = document.getElementById('incompleteBookshelfList')
     incompleteBookshelfList.innerHTML = ''
 
@@ -189,12 +263,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     updatedBookSubmitTitle()
-    inputBookIsComplete.addEventListener('change', (e) => updatedBookSubmitTitle())
+    inputBookIsComplete.addEventListener('change', () => updatedBookSubmitTitle())
     
-    const bookSubmit = document.getElementById('bookSubmit')
     bookSubmit.addEventListener('click', function(e){
         e.preventDefault()
-        addBook()
+        const type = inputBook.dataset.type
+        if(type === 'add') addBook()
+        else if(type === 'update') updateBook(inputBook.dataset.bookId)
     })
 
     const searchSubmit = document.getElementById('searchSubmit')
