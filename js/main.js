@@ -1,10 +1,9 @@
-const books = []
+let books = []
 const STORAGE_KEY = 'BOOKSHELF_APPS'
 const RENDER_EVENT = 'render-book'
 const SAVED_EVENT = 'saved-book'
 
 const inputBookIsComplete = document.getElementById('inputBookIsComplete')
-const bookSubmit = document.getElementById('bookSubmit')
 
 const isStorageExists = () =>{
     if(typeof(Storage) === undefined){
@@ -52,6 +51,10 @@ const findBook = (id) => books.find((book) => book.id == id)
 
 const findBookIndex = (id) => books.findIndex((book) => book.id == id)
 
+const findBookTitle = (title) => books.filter(
+    (book) => book.title.toLowerCase().includes(title.toLowerCase())
+)
+
 const addBookToComplete = (id) => {
     const book = findBook(id)
 
@@ -97,6 +100,14 @@ const addBook = () => {
     saveData({add: true}, bookObject)
 }
 
+const searchBookByTitle = (title) => {
+    const bookTemp = books
+    const booksSearch = findBookTitle(title)
+    books = booksSearch
+    document.dispatchEvent(new Event(RENDER_EVENT))
+    books = bookTemp
+}
+
 const makeBook = (bookObject) => {
     const bookContainer = document.createElement('article')
     bookContainer.classList.add('book_item')
@@ -105,7 +116,7 @@ const makeBook = (bookObject) => {
     bookTitle.innerText = bookObject.title
 
     const bookAuthor = document.createElement('p')
-    bookAuthor.innerText = `Penulis: ${bookObject.title}`
+    bookAuthor.innerText = `Penulis: ${bookObject.author}`
 
     const bookYear = document.createElement('p')
     bookYear.innerText = `Tahun: ${bookObject.year}`
@@ -177,11 +188,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     updatedBookSubmitTitle()
-    
     inputBookIsComplete.addEventListener('change', (e) => updatedBookSubmitTitle())
     
+    const bookSubmit = document.getElementById('bookSubmit')
     bookSubmit.addEventListener('click', function(e){
         e.preventDefault()
         addBook()
+    })
+
+    const searchSubmit = document.getElementById('searchSubmit')
+    const searchBookTitle = document.getElementById('searchBookTitle')
+    searchSubmit.addEventListener('click', function(e){
+        e.preventDefault()
+        searchBookByTitle(searchBookTitle.value)
     })
 })
