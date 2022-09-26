@@ -16,6 +16,37 @@ const updatedBookSubmitTitle = () => {
     else spanEl.innerText = 'Belum selesai dibaca'
 }
 
+const findBook = (id) => books.find((book) => book.id == id)
+
+const findBookIndex = (id) => books.findIndex((book) => book.id == id)
+
+const addBookToComplete = (id) => {
+    const book = findBook(id)
+
+    if(book === undefined) return
+
+    book.isComplete = true
+    document.dispatchEvent(new Event(RENDER_EVENT))
+}
+
+const undoBookCompleted = (id) => {
+    const book = findBook(id)
+
+    if(book === undefined) return
+
+    book.isComplete = false
+    document.dispatchEvent(new Event(RENDER_EVENT))
+}
+
+const removeBook = (id) => {
+    const book = findBookIndex(id)
+
+    if(book === -1) return
+
+    books.splice(book, 1)
+    document.dispatchEvent(new Event(RENDER_EVENT))
+}
+
 const addBook = () => {
     const id = generateId()
     const title = document.getElementById('inputBookTitle').value
@@ -49,12 +80,21 @@ const makeBook = (bookObject) => {
     actionButtonUpdate.classList.add('green')
     if(bookObject.isComplete){
         actionButtonUpdate.innerHTML = 'Belum selesai dibaca'
+        actionButtonUpdate.addEventListener('click', function(e){
+            undoBookCompleted(bookObject.id)
+        })
     }else{
         actionButtonUpdate.innerHTML = 'Selesai dibaca'
+        actionButtonUpdate.addEventListener('click', function(e){
+            addBookToComplete(bookObject.id)
+        })
     }
     const actionButtonRemove = document.createElement('button')
     actionButtonRemove.classList.add('red')
     actionButtonRemove.innerText = 'Hapus buku'
+    actionButtonRemove.addEventListener('click', function(e){
+        removeBook(bookObject.id)
+    })
     bookAction.append(actionButtonUpdate,actionButtonRemove)
 
     bookContainer.append(bookTitle, bookAuthor, bookYear, bookAction)
