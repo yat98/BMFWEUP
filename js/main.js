@@ -1,8 +1,40 @@
 const books = []
+const STORAGE_KEY = 'BOOKSHELF_APPS'
 const RENDER_EVENT = 'render-book'
+const SAVED_EVENT = 'saved-book'
 
 const inputBookIsComplete = document.getElementById('inputBookIsComplete')
 const bookSubmit = document.getElementById('bookSubmit')
+
+const isStorageExists = () =>{
+    if(typeof(Storage) === undefined){
+        alert('Browser yang anda gunakan tidak mendukung')
+        return false
+    }
+    return true
+}
+
+const loadDataFromStorage = () => {
+    const serializedData = localStorage.getItem(STORAGE_KEY)
+    let data = JSON.parse(serializedData)
+
+    if(data !== null){
+        for(const book of data){
+            books.push(book)
+        }
+    }
+
+    document.dispatchEvent(new Event(RENDER_EVENT))
+}
+
+const saveData = (option, book) => {
+    if(isStorageExists()){
+        const data = {add: option.add, undo: option.undo, complete: option.complete, remove: option.remove, book: book}
+        const parsed = JSON.stringify(books)
+        localStorage.setItem(STORAGE_KEY, parsed)
+        document.dispatchEvent(new CustomEvent(SAVED_EVENT, { detail: data }))
+    }
+}
 
 const generateId = () => +new Date()
 
@@ -27,6 +59,7 @@ const addBookToComplete = (id) => {
 
     book.isComplete = true
     document.dispatchEvent(new Event(RENDER_EVENT))
+    saveData({complete: true}, book)
 }
 
 const undoBookCompleted = (id) => {
@@ -36,15 +69,18 @@ const undoBookCompleted = (id) => {
 
     book.isComplete = false
     document.dispatchEvent(new Event(RENDER_EVENT))
+    saveData({undo: true}, book)
 }
 
 const removeBook = (id) => {
-    const book = findBookIndex(id)
+    const bookIndex = findBookIndex(id)
 
-    if(book === -1) return
+    if(bookIndex === -1) return
 
-    books.splice(book, 1)
+    const bookTemp = books[bookIndex]
+    books.splice(bookIndex, 1)
     document.dispatchEvent(new Event(RENDER_EVENT))
+    saveData({remove: true}, bookTemp)
 }
 
 const addBook = () => {
@@ -58,6 +94,7 @@ const addBook = () => {
     books.push(bookObject)
     
     document.dispatchEvent(new Event(RENDER_EVENT))
+    saveData({add: true}, bookObject)
 }
 
 const makeBook = (bookObject) => {
@@ -102,6 +139,23 @@ const makeBook = (bookObject) => {
     return bookContainer
 }
 
+document.addEventListener(SAVED_EVENT, function(e){
+    let shelf = 'rak belum selesai dibaca'
+    if(e.detail.book.isComplete){
+        shelf = 'rak sudah selesai dibaca'
+    }
+
+    if(e.detail.add){
+        alert(`Berhasil menambahkan buku ${e.detail.book.title} ke ${shelf}`)
+    }else if(e.detail.undo){
+        alert(`Berhasil memindahkan buku ${e.detail.book.title} ke ${shelf}`)
+    }else if(e.detail.complete){
+        alert(`Berhasil menyelesaikan buku ${e.detail.book.title}`)
+    }else if(e.detail.remove){
+        alert(`Berhasil menghapus buku ${e.detail.book.title}`)
+    }
+})
+
 document.addEventListener(RENDER_EVENT, function(e){
     const incompleteBookshelfList = document.getElementById('incompleteBookshelfList')
     incompleteBookshelfList.innerHTML = ''
@@ -118,6 +172,10 @@ document.addEventListener(RENDER_EVENT, function(e){
 })
 
 document.addEventListener('DOMContentLoaded', () => {
+    if(isStorageExists()){
+        loadDataFromStorage()
+    }
+
     updatedBookSubmitTitle()
     
     inputBookIsComplete.addEventListener('change', (e) => updatedBookSubmitTitle())
