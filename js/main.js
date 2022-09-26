@@ -141,7 +141,8 @@ const makeBook = (bookObject) => {
     actionButtonRemove.classList.add('red')
     actionButtonRemove.innerText = 'Hapus buku'
     actionButtonRemove.addEventListener('click', function(e){
-        removeBook(bookObject.id)
+        const isRemove = confirm(`Anda yakin akan menghapus buku ${bookObject.title} tahun ${bookObject.year} karya ${bookObject.author}?`)
+        if(isRemove) removeBook(bookObject.id)
     })
     bookAction.append(actionButtonUpdate,actionButtonRemove)
 
@@ -157,13 +158,13 @@ document.addEventListener(SAVED_EVENT, function(e){
     }
 
     if(e.detail.add){
-        alert(`Berhasil menambahkan buku ${e.detail.book.title} ke ${shelf}`)
+        alert(`Berhasil menambahkan buku ${e.detail.book.title} tahun ${e.detail.book.year} karya ${e.detail.book.author} ke ${shelf}`)
     }else if(e.detail.undo){
-        alert(`Berhasil memindahkan buku ${e.detail.book.title} ke ${shelf}`)
+        alert(`Berhasil memindahkan buku ${e.detail.book.title} tahun ${e.detail.book.year} karya ${e.detail.book.author} ke ${shelf}`)
     }else if(e.detail.complete){
-        alert(`Berhasil menyelesaikan buku ${e.detail.book.title}`)
+        alert(`Berhasil menyelesaikan buku ${e.detail.book.title} tahun ${e.detail.book.year} karya ${e.detail.book.author}`)
     }else if(e.detail.remove){
-        alert(`Berhasil menghapus buku ${e.detail.book.title}`)
+        alert(`Berhasil menghapus buku ${e.detail.book.title} tahun ${e.detail.book.year} karya ${e.detail.book.author}`)
     }
 })
 
